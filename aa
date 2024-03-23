@@ -1,0 +1,134 @@
+repeat
+    task.wait()
+until game:IsLoaded()
+
+getgenv().Config = {
+    Player = {
+        TradingEnabled = false
+    },
+    Pets = {
+        InfinitePetSpeed = true
+    },
+    Game = {
+        AntiLag = true,
+        PetSFX = false,
+        ShowOtherPets = false,
+        ShowNextArea = false,
+        DeleteBorder = true,
+        ReduceOrbs = true,
+        Notifications = false
+    },
+    Client = {
+        SetFpsCap = 200,
+        RenderingEnabled = false,
+        NoTextures = true, -- Game.AntiLag needs to be enabled
+        PlasticMaterials = true, -- Game.AntiLag needs to be enabled
+        DisableSound = true
+    }
+}
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Library = ReplicatedStorage.Library
+local Client = Library.Client
+
+local SettingsModule = require(game:GetService("ReplicatedStorage").Library.Client.SettingsCmds)
+
+if SettingsModule.Get("ShowOtherPets") == "On" and not Config.Game.ShowOtherPets then
+    ReplicatedStorage.Network["Toggle Setting"]:InvokeServer("ShowOtherPets")
+end
+
+if SettingsModule.Get("Trading") == "All" and not Config.Player.TradingEnabled then
+    ReplicatedStorage.Network["Toggle Setting"]:InvokeServer("Trading")
+    ReplicatedStorage.Network["Toggle Setting"]:InvokeServer("Trading")
+end
+
+if SettingsModule.Get("PetSFX") == "On" and not Config.Game.PetSFX then
+    ReplicatedStorage.Network["Toggle Setting"]:InvokeServer("PetSFX")
+end
+
+if SettingsModule.Get("Notifications") == "On" and not Config.Game.Notifications then
+    ReplicatedStorage.Network["Toggle Setting"]:InvokeServer("Notifications")
+end
+
+if SettingsModule.Get("ShowNextArea") == "On" and not Config.Game.ShowNextArea then
+    ReplicatedStorage.Network["Toggle Setting"]:InvokeServer("ShowNextArea")
+end
+
+if SettingsModule.Get("ReduceOrbs") == "On" and not Config.Game.ReduceOrbs then
+    ReplicatedStorage.Network["Toggle Setting"]:InvokeServer("ReduceOrbs")
+elseif SettingsModule.Get("ReduceOrbs") == "Off" and Config.Game.ReduceOrbs then
+    ReplicatedStorage.Network["Toggle Setting"]:InvokeServer("ReduceOrbs")
+end
+
+setfpscap(Config.Client.SetFpsCap)
+
+pcall(function()
+    game:GetService("RunService"):Set3dRenderingEnabled(Config.Client.RenderingEnabled)
+end)
+
+if Config.Client.DisableSound then
+    pcall(function()
+        UserSettings().GameConfig.MasterVolume = 0
+    end)
+end
+
+if Config.AntiLag then
+    pcall(function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    end)
+
+    workspace.Terrain.WaterWaveSize = 0
+    workspace.Terrain.WaterWaveSpeed = 0
+    workspace.Terrain.WaterReflectance = 0
+    workspace.Terrain.WaterTransparency = 0
+    game.Lighting.GlobalShadows = false
+    game.Lighting.FogEnd = 9e9
+    game.Lighting.FogStart = 0
+    game.Lighting.Brightness = 0
+
+    game:GetService("Lighting"):ClearAllChildren()
+end
+
+if Config.Game.DeleteBorder then
+    pcall(function()
+        workspace.Border:Destroy()
+        workspace.Border2:Destroy()
+        workspace.FlyBorder:Destroy()
+        workspace.FlyBorder2:Destroy()
+    end)
+
+    for i, v in pairs(workspace.Map:GetChildren()) do
+        if v:FindFirstChild("PARTS_LOD") then
+            v.Parts_LOD:Destroy()
+        end
+    end
+end
+
+for _, v in pairs(game:GetDescendants()) do
+    if (v:IsA("Part") or v:IsA("BasePart") or v:IsA("UnionOperation") or v:IsA("CornerWedgePart") or v:IsA("TrussPart")) and Config.Client.PlasticMaterials then
+        v.Material = "Plastic"
+        v.Reflectance = 0
+    elseif (v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") or v:IsA("Trail")) and Config.Client.NoTextures then
+        v:Destroy()
+    elseif v:IsA("Explosion") then
+        v.BlastPressure = 1
+        v.BlastRadius = 1
+    elseif v:IsA("Fire") or v:IsA("SpotLight") or v:IsA("Smoke") or v:IsA("Sparkles") then
+        v.Enabled = false
+    elseif v:IsA("MeshPart") and Config.Client.PlasticMaterials then
+        v.Material = "Plastic"
+        v.Reflectance = 0
+        v.TextureID = 10385902758728957
+    elseif v:IsA("SpecialMesh") and Config.Client.NoTextures then
+        v.TextureId = 0
+    elseif v:IsA("ShirtGraphic") and Config.Client.NoTextures then
+        v.Graphic = 1
+    elseif (v:IsA("Shirt") or v:IsA("Pants")) and Config.Client.NoTextures then
+        v[v.ClassName .. "Template"] = 1
+    elseif v.Name == "Foilage" and v:IsA("Folder") then
+        v:Destroy()
+    elseif string.find(v.Name:lower(), "tree") or string.find(v.Name:lower(), "water") or string.find(v.Name:lower(), "bush") or string.find(v.Name:lower(), "grass") then
+        v:Destroy()
+    end
+end
